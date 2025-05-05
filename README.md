@@ -16,6 +16,7 @@ WinRAR'ın tam sürüm özelliklerini aktifleştiren basit bir araç. 🔓
 
 ## Bağlantı
 Discord Adresim: Kynarix
+
 Discord Sunucumuz: [Katılmak için tıklayın](https://discord.gg/codejs)
 
 ---
