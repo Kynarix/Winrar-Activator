@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import os
 import sys
 import ctypes
@@ -13,18 +10,15 @@ import webbrowser
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# İşlem detaylarını gösterip göstermeme
 QUIET_MODE = True
 
 def is_admin():
-    """Kullanıcının admin haklarına sahip olup olmadığını kontrol eder"""
     try:
         return ctypes.windll.shell32.IsUserAnAdmin() != 0
     except:
         return False
 
 def check_python_version():
-    """Python sürümünü kontrol eder"""
     required_version = (3, 6)
     current_version = sys.version_info
     
@@ -36,11 +30,9 @@ def check_python_version():
     return True
 
 def create_license_key():
-    """Lisans anahtarı oluşturur"""
     if not QUIET_MODE:
         print("[+] Lisans anahtarı oluşturuluyor...")
     
-    # Kullanıcının istediği lisans içeriği
     license_content = """RAR registration data
 Hououin Kyouma
 El Psy Congroo
@@ -57,40 +49,27 @@ a638ec8aa57606488b324a1e71be06e54787b797df438679604ee6
     success_count = 0
     failed_locations = []
     
-    # Birden fazla olası konum - Bazı durumlar için farklı yerler gerekebilir
     locations = [
-        # 1. APPDATA klasörü - birçok kullanıcı için çalışır
         os.path.join(os.environ.get('APPDATA', ''), 'WinRAR', 'rarreg.key'),
-        
-        # 2. Program Files - Admin hakları gerekli
         os.path.join(os.environ.get('PROGRAMFILES', 'C:\\Program Files'), 'WinRAR', 'rarreg.key'),
         os.path.join(os.environ.get('PROGRAMFILES(X86)', 'C:\\Program Files (x86)'), 'WinRAR', 'rarreg.key'),
-        
-        # 3. ALLUSERSPROFILE - sistem çapında ayarlar
         os.path.join(os.environ.get('ALLUSERSPROFILE', 'C:\\ProgramData'), 'WinRAR', 'rarreg.key'),
-        
-        # 4. Windows klasörü - bazı eski sürümler için
         os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'System32', 'rarreg.key')
     ]
     
-    # WinRAR programını bul
     winrar_path = find_winrar_path()
     if winrar_path:
-        # Program Files içindeki kurulum klasörüne ekle
         locations.append(os.path.join(winrar_path, 'rarreg.key'))
     
     for path in locations:
         try:
-            # Klasörü oluştur
             os.makedirs(os.path.dirname(path), exist_ok=True)
             
-            # Lisans dosyasını yaz
             with open(path, 'w') as f:
                 f.write(license_content)
             
-            # Dosya izinlerini ayarla - herkes için okunabilir
             try:
-                os.chmod(path, 0o444)  # Salt okunur (Read-only)
+                os.chmod(path, 0o444)
             except:
                 pass
                 
@@ -110,24 +89,18 @@ a638ec8aa57606488b324a1e71be06e54787b797df438679604ee6
         return False
 
 def modify_registry():
-    """Registry anahtarlarını değiştirir - hem HKCU hem de HKLM"""
     if not QUIET_MODE:
         print("[+] Registry ayarları değiştiriliyor...")
     
     success_count = 0
     
-    # 1. HKEY_CURRENT_USER değişiklikleri
     try:
-        # Registry anahtarı
         reg_path = r"SOFTWARE\WinRAR\Licenses"
-        
-        # Registry anahtarı oluştur veya aç
         try:
             key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, reg_path, 0, winreg.KEY_WRITE)
         except:
             key = winreg.OpenKeyEx(winreg.HKEY_CURRENT_USER, reg_path, 0, winreg.KEY_WRITE)
         
-        # Lisans bilgilerini ayarla - 50 yıl
         future_date = datetime.now() + timedelta(days=365*50)
         license_date = future_date.strftime("%Y%m%d")
         
@@ -144,20 +117,15 @@ def modify_registry():
         if not QUIET_MODE:
             print(f"[-] HKEY_CURRENT_USER registry değiştirilemedi")
     
-    # 2. HKEY_LOCAL_MACHINE değişiklikleri (admin hakları gerekli)
     try:
-        # Ana Registry anahtarı
         reg_path = r"SOFTWARE\WinRAR\Licenses"
-        
-        # 32-bit ve 64-bit sistemler için Registry anahtarı oluştur
         for access_type in [winreg.KEY_WOW64_32KEY | winreg.KEY_WRITE, winreg.KEY_WOW64_64KEY | winreg.KEY_WRITE]:
             try:
                 try:
                     key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, reg_path, 0, access_type)
                 except:
                     key = winreg.OpenKeyEx(winreg.HKEY_LOCAL_MACHINE, reg_path, 0, access_type)
-                
-                # Lisans bilgilerini ayarla
+
                 future_date = datetime.now() + timedelta(days=365*50)
                 license_date = future_date.strftime("%Y%m%d")
                 
@@ -177,7 +145,6 @@ def modify_registry():
     except Exception:
         pass
     
-    # 3. WinRAR ana ayarları değiştir - deneme süresi gösterimini kapat
     try:
         reg_path = r"SOFTWARE\WinRAR\General"
         
@@ -186,9 +153,8 @@ def modify_registry():
         except:
             key = winreg.OpenKeyEx(winreg.HKEY_CURRENT_USER, reg_path, 0, winreg.KEY_WRITE)
             
-        # Farklı değerler ayarla
-        winreg.SetValueEx(key, "ShowLicense", 0, winreg.REG_DWORD, 0)  # Lisans gösterimini kapat
-        winreg.SetValueEx(key, "InstallVersion", 0, winreg.REG_SZ, "6.00")  # Sürümü ayarla
+        winreg.SetValueEx(key, "ShowLicense", 0, winreg.REG_DWORD, 0)
+        winreg.SetValueEx(key, "InstallVersion", 0, winreg.REG_SZ, "6.00") 
         
         winreg.CloseKey(key)
         if not QUIET_MODE:
@@ -204,13 +170,11 @@ def modify_registry():
         return False
 
 def find_winrar_path():
-    """WinRAR'ın kurulu olduğu dizini bulur"""
     possible_paths = [
         r"C:\Program Files\WinRAR",
         r"C:\Program Files (x86)\WinRAR",
     ]
     
-    # Özel kurulumları kontrol et
     for drive in "CDEFGH":
         possible_paths.append(f"{drive}:\\WinRAR")
         possible_paths.append(f"{drive}:\\Program Files\\WinRAR")
@@ -223,7 +187,6 @@ def find_winrar_path():
     return None
 
 def check_winrar_installed():
-    """WinRAR'ın kurulu olup olmadığını kontrol eder"""
     winrar_path = find_winrar_path()
     if not winrar_path:
         print("[-] WinRAR kurulumu bulunamadı.")
@@ -234,12 +197,10 @@ def check_winrar_installed():
     return True
 
 def reset_winrar_trial():
-    """WinRAR deneme süresini sıfırlar"""
     if not QUIET_MODE:
         print("[+] WinRAR deneme süresi sıfırlanıyor...")
     
     try:
-        # 1. HKEY_CURRENT_USER içerisindeki WinRAR bilgilerini temizle
         cu_reg_paths = [
             r"SOFTWARE\WinRAR",
             r"SOFTWARE\WinRAR\Licenses",
@@ -253,7 +214,6 @@ def reset_winrar_trial():
             except:
                 pass
         
-        # 2. HKEY_LOCAL_MACHINE içerisindeki WinRAR bilgilerini temizle
         lm_reg_paths = [
             r"SOFTWARE\WinRAR",
             r"SOFTWARE\WinRAR\Licenses",
@@ -267,7 +227,6 @@ def reset_winrar_trial():
                 except:
                     pass
         
-        # 3. %APPDATA% ve diğer klasörlerdeki WinRAR dizinlerini temizle
         directories_to_clean = [
             os.path.join(os.environ.get('APPDATA', ''), 'WinRAR'),
             os.path.join(os.environ.get('LOCALAPPDATA', ''), 'WinRAR'),
@@ -290,13 +249,11 @@ def reset_winrar_trial():
         return False
 
 def delete_existing_rarreg():
-    """Mevcut rarreg.key dosyalarını bulup siler"""
     if not QUIET_MODE:
         print("[+] Mevcut rarreg.key dosyaları aranıyor...")
     
     found_files = []
     
-    # Olası konumlar
     drives = ['C:', 'D:', 'E:', 'F:']
     possible_locations = [
         r"\Program Files\WinRAR",
@@ -306,34 +263,28 @@ def delete_existing_rarreg():
         r"\Windows\System32"
     ]
     
-    # Kullanıcı profilleri
     for drive in drives:
         for location in possible_locations:
             path = f"{drive}{location}\\rarreg.key"
             if os.path.exists(path):
                 found_files.append(path)
     
-    # Kullanıcı profilleri içinde de ara
     users_dir = os.path.join(os.environ.get('SystemDrive', 'C:'), 'Users')
     if os.path.exists(users_dir):
         for user_dir in os.listdir(users_dir):
             appdata_path = os.path.join(users_dir, user_dir, 'AppData')
             if os.path.exists(appdata_path):
-                # Roaming AppData
                 rarreg_path = os.path.join(appdata_path, 'Roaming', 'WinRAR', 'rarreg.key')
                 if os.path.exists(rarreg_path):
                     found_files.append(rarreg_path)
-                
-                # Local AppData
                 rarreg_path = os.path.join(appdata_path, 'Local', 'WinRAR', 'rarreg.key')
                 if os.path.exists(rarreg_path):
                     found_files.append(rarreg_path)
     
-    # Dosyaları sil
     deleted_count = 0
     for file_path in found_files:
         try:
-            os.chmod(file_path, 0o777)  # Önce izinleri değiştir
+            os.chmod(file_path, 0o777) 
             os.remove(file_path)
             if not QUIET_MODE:
                 print(f"[✓] Eski lisans dosyası silindi: {file_path}")
@@ -350,7 +301,6 @@ def delete_existing_rarreg():
     return deleted_count > 0
 
 def force_kill_processes():
-    """WinRAR ile ilgili tüm süreçleri sonlandırır"""
     if not QUIET_MODE:
         print("[+] WinRAR süreçleri sonlandırılıyor...")
     
@@ -363,14 +313,11 @@ def force_kill_processes():
                           stderr=subprocess.DEVNULL)
         except:
             pass
-    
-    # Biraz bekle
     time.sleep(1)
     
     return True
 
 def print_ascii_logo():
-    """ASCII logoyu ekrana yazdırır"""
     logo = """
  ██╗    ██╗██╗███╗   ██╗██████╗  █████╗ ██████╗ 
  ██║    ██║██║████╗  ██║██╔══██╗██╔══██╗██╔══██╗
@@ -385,7 +332,6 @@ def print_ascii_logo():
     print(logo)
 
 def check_os():
-    """İşletim sistemi uyumluluğunu kontrol eder"""
     if not platform.system() == "Windows":
         print(f"[-] Bu program sadece Windows işletim sistemlerinde çalışır.")
         print(f"    Mevcut işletim sistemi: {platform.system()}")
@@ -394,9 +340,7 @@ def check_os():
     return True
 
 def is_discord_running():
-    """Discord'un çalışıp çalışmadığını kontrol eder"""
     try:
-        # Discord process'lerini kontrol et
         result = subprocess.run(
             ["tasklist", "/FI", "IMAGENAME eq Discord.exe", "/NH"], 
             capture_output=True, 
@@ -404,14 +348,11 @@ def is_discord_running():
             creationflags=subprocess.CREATE_NO_WINDOW
         )
         
-        # Eğer çıktıda "Discord.exe" varsa, Discord çalışıyordur
         return "Discord.exe" in result.stdout
     except Exception:
-        # Herhangi bir hata olursa, Discord'un çalışmadığını varsay
         return False
 
 def open_discord_server():
-    """Discord sunucusunu açar (discord.gg/codejs)"""
     print("\n[+] Discord sunucumuza katılmak ister misiniz? (E/H): ", end="")
     choice = input().strip().lower()
     
@@ -420,14 +361,11 @@ def open_discord_server():
         discord_app_url = "discord://discord.gg/codejs"
         
         try:
-            # Discord çalışıyor mu kontrol et
             if is_discord_running():
                 print("[+] Discord uygulaması üzerinden sunucuya yönlendiriliyorsunuz...")
-                # Discord protokolünü kullanarak sunucuya yönlendir
                 webbrowser.open(discord_app_url)
             else:
                 print("[+] Tarayıcı üzerinden Discord sunucusuna yönlendiriliyorsunuz...")
-                # Tarayıcı üzerinden Discord sunucusuna yönlendir
                 webbrowser.open(discord_invite_url)
             
             print(f"[i] Discord sunucusu: {discord_invite_url}")
@@ -441,58 +379,47 @@ def open_discord_server():
         return False
 
 def main():
-    # Renkli konsol çıktısı için Windows'ta ANSI çıktıları etkinleştir
     os.system("")
     
-    # Konsolu temizle
     os.system('cls' if os.name == 'nt' else 'clear')
     
-    # Logoyu göster
     print_ascii_logo()
     
     print("WinRAR aktivatoru baslatiliyor...")
     print()
     
-    # İşletim sistemi kontrolü
     if not check_os():
         input("\nÇıkmak için bir tuşa basın...")
         sys.exit(1)
     
-    # Python sürüm kontrolü
     if not check_python_version():
         input("\nÇıkmak için bir tuşa basın...")
         sys.exit(1)
-    
-    # Admin kontrolü
+
     if not is_admin():
         print("[-] Bu aktivatörün düzgün çalışması için admin hakları gerekli!")
         print("    Lütfen bu scripti admin olarak çalıştırın...")
         
-        # Tekrar admin olarak çalıştırmayı dene
         if sys.platform == 'win32':
             ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
         
         input("\nÇıkmak için bir tuşa basın...")
         sys.exit(1)
     
-    # WinRAR kurulu mu kontrol et
     if not check_winrar_installed():
         input("\nÇıkmak için bir tuşa basın...")
         sys.exit(1)
     
-    # Aktivasyon işlemleri
     print("\n[+] AKTIVATOR BASLATILIYOR!")
     print("="*50)
     print("\n[!] LUTFEN BEKLEYIN! Bu islem biraz zaman alabilir...")
     
-    # İşlemleri yap ama çıktıları gösterme
     force_kill_processes()
     delete_existing_rarreg()
     reset_winrar_trial()
     license_success = create_license_key()
     registry_success = modify_registry()
     
-    # Sonucu göster
     print("\n" + "="*50)
     
     if license_success and registry_success:
@@ -507,7 +434,6 @@ def main():
     print("by Kynarix tarafından yapılmıştır")
     print("\n[Github]: https://github.com/Kynarix")
     
-    # Discord sunucusuna yönlendirme
     open_discord_server()
     
     input("\nÇıkmak için bir tuşa basın...")
