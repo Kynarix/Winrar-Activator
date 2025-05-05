@@ -19,6 +19,9 @@ WinRAR'ın tam sürüm özelliklerini aktifleştiren basit bir aktivator. 🔓
 
 ## Bağlantı
 Discord Adresim: Kynarix
+
 Discord Sunucumuz: [Katılmak için tıklayın](https://discord.gg/codejs)
+
 CheatGlobal: [Gitmek için tıkla](https://cheatglobal.com/members/twixx.64436/)
+
 ---
