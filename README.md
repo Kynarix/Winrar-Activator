@@ -5,6 +5,9 @@ WinRAR'ın tam sürüm özelliklerini aktifleştiren basit bir araç. 🔓
 ## Gereksinimler
 - Python 3.8+
 
+## Kurulum
+1. pip install -r requirements.txt
+
 ## Kullanım
 1. `python winrar.py` dosyasına çift tıklayın
 3. İşlem bittiğinde WinRAR lisanslı hale gelecek
