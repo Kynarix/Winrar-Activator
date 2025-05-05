@@ -1,6 +1,6 @@
 # WinRAR Aktivatörü
 
-WinRAR'ın tam sürüm özelliklerini aktifleştiren basit bir araç. 🔓
+WinRAR'ın tam sürüm özelliklerini aktifleştiren basit bir aktivator. 🔓
 
 ## Gereksinimler
 - Python 3.8+
